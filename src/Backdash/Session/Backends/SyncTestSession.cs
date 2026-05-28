@@ -436,6 +436,18 @@ sealed class SyncTestSession<TInput> : INetcodeSession<TInput>
         synchronizer.SetFrameDelay(player, delayInFrames);
     }
 
+    public void SetFrameDelay(int delayInFrames)
+    {
+        foreach (var (player, _) in addedPlayers)
+            SetFrameDelay(player, delayInFrames);
+    }
+
+    public int GetFrameDelay(NetcodePlayer player)
+    {
+        ThrowIf.ArgumentOutOfBounds(player.Index, 0, addedPlayers.Count);
+        return synchronizer.GetFrameDelay(player);
+    }
+
     [MemberNotNull(nameof(callbacks))]
     public void SetHandler(INetcodeSessionHandler handler)
     {

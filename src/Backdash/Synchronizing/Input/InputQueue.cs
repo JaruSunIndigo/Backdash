@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Backdash.Core;
 using Backdash.Data;
 
@@ -34,8 +35,17 @@ sealed class InputQueue<TInput> where TInput : unmanaged
         inputs.Fill(new(Frame.Zero));
     }
 
-    ref GameInput<TInput> LastInput => ref inputs.Front();
-    ref GameInput<TInput> FirstInput => ref inputs.Back();
+    ref GameInput<TInput> LastInput
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => ref inputs.Front();
+    }
+
+    ref GameInput<TInput> FirstInput
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => ref inputs.Back();
+    }
 
     public Frame FirstIncorrectFrame => firstIncorrectFrame;
 
@@ -66,7 +76,13 @@ sealed class InputQueue<TInput> where TInput : unmanaged
         ThrowIf.Assert(firstIncorrectFrame.IsNull || frame.Number <= firstIncorrectFrame.Number);
         logger.Write(LogLevel.Trace,
             $"Queue {QueueId} => resetting all prediction errors back to frame {frame.Number}.");
-        // There's nothing really to do other than reset our prediction state and the incorrect frame counter...
+
+        // There's nothing really to do other than reset our prediction state and the incorrect frame counter.
+        ResetPrediction();
+    }
+
+    void ResetPrediction()
+    {
         prediction.ResetFrame();
         firstIncorrectFrame = Frame.Null;
         lastFrameRequested = Frame.Null;
@@ -86,6 +102,7 @@ sealed class InputQueue<TInput> where TInput : unmanaged
         lastUserAddedFrame = frame;
         lastFrameRequested = frame;
         lastAddedFrame = frame + LocalFrameDelay;
+        ResetPrediction();
 
         if (inputs.IsEmpty)
         {
@@ -94,6 +111,15 @@ sealed class InputQueue<TInput> where TInput : unmanaged
             lastAddedFrame = frame;
             inputs.Add(firstInput);
         }
+    }
+
+    public void Reset()
+    {
+        firstFrame = true;
+        lastUserAddedFrame = lastAddedFrame = lastFrameRequested = Frame.Null;
+        ResetPrediction();
+        inputs.Clear();
+        inputs.Fill(new(Frame.Zero));
     }
 
     public bool GetConfirmedInput(in Frame requestedFrame, ref GameInput<TInput> input)

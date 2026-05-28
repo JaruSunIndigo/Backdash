@@ -234,7 +234,6 @@ public sealed class CircularBuffer<T> : IReadOnlyList<T>, IEquatable<CircularBuf
         return count;
     }
 
-
     public Span<T> GetResetSpan(int size, bool clearArray = false)
     {
         ArgumentOutOfRangeException.ThrowIfGreaterThan(size, array.Length);

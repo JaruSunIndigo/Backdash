@@ -65,11 +65,12 @@ sealed class Synchronizer<TInput> where TInput : unmanaged
     public FrameSpan FramesBehind => new(currentFrame.Number - lastConfirmedFrame.Number);
     public FrameSpan RollbackFrames => new((int)Math.Round(rollbackFrameCounter));
 
-    public void AddQueue(NetcodePlayer player) =>
-        inputQueues.Add(new(player.Index, options.InputQueueLength, logger, inputComparer)
+    public void AddQueue(NetcodePlayer player) => inputQueues.Add(
+        new(player.Index, options.InputQueueLength, logger, inputComparer)
         {
             LocalFrameDelay = player.IsLocal() ? Math.Max(options.InputDelayFrames, 0) : 0,
-        });
+        }
+    );
 
     public void SetLastConfirmedFrame(Frame frame)
     {
@@ -287,8 +288,14 @@ sealed class Synchronizer<TInput> where TInput : unmanaged
         return false;
     }
 
-    public void SetFrameDelay(NetcodePlayer player, int delay) =>
-        inputQueues[player.Index].LocalFrameDelay = Math.Max(delay, 0);
+    public void SetFrameDelay(NetcodePlayer player, int delay)
+    {
+        if (player.IsLocal())
+            inputQueues[player.Index].LocalFrameDelay = Math.Max(delay, 0);
+    }
+
+    public int GetFrameDelay(NetcodePlayer player) =>
+        inputQueues[player.Index].LocalFrameDelay;
 
     void ResetPrediction(Frame frameNumber)
     {

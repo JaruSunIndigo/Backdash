@@ -225,6 +225,8 @@ sealed class SpectatorSession<TInput> :
     }
 
     public void SetFrameDelay(NetcodePlayer player, int delayInFrames) { }
+    public void SetFrameDelay(int delayInFrames) { }
+    public int GetFrameDelay(NetcodePlayer player) => 0;
 
     public void Start(CancellationToken stoppingToken = default)
     {

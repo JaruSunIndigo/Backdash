@@ -162,6 +162,8 @@ sealed class ReplaySession<TInput> : INetcodeSession<TInput> where TInput : unma
     }
 
     public void SetFrameDelay(NetcodePlayer player, int delayInFrames) { }
+    public void SetFrameDelay(int delayInFrames) { }
+    public int GetFrameDelay(NetcodePlayer player) => 0;
 
     public void Start(CancellationToken stoppingToken = default)
     {

@@ -253,6 +253,12 @@ sealed class LocalSession<TInput> : INetcodeSession<TInput> where TInput : unman
 
     public bool LoadFrame(Frame frame)
     {
+        if (frame.IsNull)
+        {
+            ResetInputQueues();
+            return false;
+        }
+
         if (frame.Number < 1) return false;
 
         if (frame.Number == CurrentFrame.Number)
@@ -301,6 +307,18 @@ sealed class LocalSession<TInput> : INetcodeSession<TInput> where TInput : unman
         }
     }
 
+    void ResetInputQueues()
+    {
+        CurrentFrame = Frame.Zero;
+        ref var current = ref MemoryMarshal.GetReference(inputQueues.AsSpan());
+        ref var limit = ref Unsafe.Add(ref current, inputQueues.Length);
+        while (Unsafe.IsAddressLessThan(ref current, ref limit))
+        {
+            current.Reset();
+            current = ref Unsafe.Add(ref current, 1)!;
+        }
+    }
+
     void SaveCurrentFrame()
     {
         var currentFrame = CurrentFrame;
@@ -319,14 +337,20 @@ sealed class LocalSession<TInput> : INetcodeSession<TInput> where TInput : unman
     {
         ArgumentOutOfRangeException.ThrowIfNegative(delayInFrames);
         ThrowIf.ArgumentOutOfBounds(player.Index, 0, addedPlayers.Count);
+        if (!player.IsLocal()) return;
+        inputQueues[player.Index].LocalFrameDelay = delayInFrames;
+    }
 
-        ref var current = ref MemoryMarshal.GetReference(inputQueues.AsSpan());
-        ref var limit = ref Unsafe.Add(ref current, inputQueues.Length);
-        while (Unsafe.IsAddressLessThan(ref current, ref limit))
-        {
-            current.LocalFrameDelay = delayInFrames;
-            current = ref Unsafe.Add(ref current, 1)!;
-        }
+    public void SetFrameDelay(int delayInFrames)
+    {
+        foreach (var player in addedPlayers)
+            SetFrameDelay(player, delayInFrames);
+    }
+
+    public int GetFrameDelay(NetcodePlayer player)
+    {
+        ThrowIf.ArgumentOutOfBounds(player.Index, 0, addedPlayers.Count);
+        return inputQueues[player.Index].LocalFrameDelay;
     }
 
     [MemberNotNull(nameof(callbacks))]

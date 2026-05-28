@@ -465,6 +465,18 @@ sealed class RemoteSession<TInput> : INetcodeSession<TInput> where TInput : unma
         synchronizer.SetFrameDelay(player, delayInFrames);
     }
 
+    public void SetFrameDelay(int delayInFrames)
+    {
+        foreach (var player in addedPlayers)
+            SetFrameDelay(player, delayInFrames);
+    }
+
+    public int GetFrameDelay(NetcodePlayer player)
+    {
+        ThrowIf.ArgumentOutOfBounds(player.Index, 0, addedPlayers.Count);
+        return synchronizer.GetFrameDelay(player);
+    }
+
     public bool LoadFrame(Frame frame)
     {
         if (frame.Number < 0) return false;

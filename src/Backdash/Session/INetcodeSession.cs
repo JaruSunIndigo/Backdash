@@ -150,11 +150,23 @@ public interface INetcodeSession : INetcodeSessionInfo, IDisposable, IAsyncDispo
     bool UpdateNetworkStats(NetcodePlayer player);
 
     /// <summary>
-    ///     Change the number of delay frames for local input.
+    ///     Reads number of delay frames for local player input.
+    /// </summary>
+    /// <param name="player"></param>
+    int GetFrameDelay(NetcodePlayer player);
+
+    /// <summary>
+    ///     Change the number of delay frames for local player input.
     /// </summary>
     /// <param name="player"></param>
     /// <param name="delayInFrames"></param>
     void SetFrameDelay(NetcodePlayer player, int delayInFrames);
+
+    /// <summary>
+    ///     Change the number of delay frames for all local players inputs.
+    /// </summary>
+    /// <param name="delayInFrames"></param>
+    void SetFrameDelay(int delayInFrames);
 
     /// <summary>
     ///     Load state for saved <paramref name="frame" />.
