@@ -60,6 +60,17 @@ abstract class DataGenerator
             .Select(x => new Frame(x.Item))
             .ToArbitrary();
 
+    public static Arbitrary<FrameSpan> FrameSpanGenerator() =>
+        ArbMap.Default.GeneratorFor<PositiveInt>()
+            .Select(x => new FrameSpan(x.Item))
+            .ToArbitrary();
+
+    public static Arbitrary<FrameRange> FrameRangeGenerator() => Arb.From(
+        from x in Generate<int>()
+        from y in Generate<int>()
+        select new FrameRange(x, y)
+    );
+
     public static Arbitrary<Checksum> ChecksumGenerator() =>
         ArbMap.Default.GeneratorFor<uint>()
             .Select(x => new Checksum(x))

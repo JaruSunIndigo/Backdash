@@ -264,6 +264,18 @@ public readonly ref struct BinaryBufferReader
     /// <inheritdoc cref="ReadFrame()" />
     public Frame? ReadNullableFrame() => ReadBoolean() ? ReadFrame() : null;
 
+    /// <summary>Reads single <see cref="FrameSpan" /> from the buffer.</summary>
+    public FrameSpan ReadFrameSpan() => ReadAsInt32<FrameSpan>();
+
+    /// <inheritdoc cref="ReadFrameSpan()" />
+    public FrameSpan? ReadNullableFrameSpan() => ReadBoolean() ? ReadFrameSpan() : null;
+
+    /// <summary>Reads single <see cref="FrameRange" /> from the buffer.</summary>
+    public FrameRange ReadFrameRange() => ReadAsInt64<FrameRange>();
+
+    /// <inheritdoc cref="ReadFrameRange()" />
+    public FrameRange? ReadNullableFrameRange() => ReadBoolean() ? ReadFrameRange() : null;
+
     /// <summary>Reads single <see cref="Checksum" /> from the buffer.</summary>
     public Checksum ReadChecksum() => ReadAsUInt32<Checksum>();
 
@@ -698,8 +710,20 @@ public readonly ref struct BinaryBufferReader
     /// <inheritdoc cref="ReadFrame()" />
     public void Read(ref Frame value) => value = ReadFrame();
 
-    /// <inheritdoc cref="ReadTimeOnly()" />
+    /// <inheritdoc cref="ReadFrame()" />
     public void Read(ref Frame? value) => value = ReadNullableFrame();
+
+    /// <inheritdoc cref="ReadFrameSpan()" />
+    public void Read(ref FrameSpan value) => value = ReadFrameSpan();
+
+    /// <inheritdoc cref="ReadFrameSpan()" />
+    public void Read(ref FrameSpan? value) => value = ReadNullableFrameSpan();
+
+    /// <inheritdoc cref="ReadFrameRange()" />
+    public void Read(ref FrameRange value) => value = ReadFrameRange();
+
+    /// <inheritdoc cref="ReadFrameRange()" />
+    public void Read(ref FrameRange? value) => value = ReadNullableFrameRange();
 
     /// <inheritdoc cref="ReadChecksum()" />
     public void Read(ref Checksum value) => value = ReadChecksum();
@@ -935,6 +959,26 @@ public readonly ref struct BinaryBufferReader
 
     /// <summary>Reads a list of <see cref="Frame" /> from buffer into <paramref name="values" />.</summary>
     public void Read(in List<Frame> values) => Read(GetListSpan(in values));
+
+    /// <summary>Reads a span of <see cref="FrameSpan" /> from buffer into <paramref name="values" />.</summary>
+    public void Read(in Span<FrameSpan> values)
+    {
+        if (values.IsEmpty) return;
+        Read(MemoryMarshal.Cast<FrameSpan, int>(values));
+    }
+
+    /// <summary>Reads a list of <see cref="FrameSpan" /> from buffer into <paramref name="values" />.</summary>
+    public void Read(in List<FrameSpan> values) => Read(GetListSpan(in values));
+
+    /// <summary>Reads a span of <see cref="FrameRange" /> from buffer into <paramref name="values" />.</summary>
+    public void Read(in Span<FrameRange> values)
+    {
+        if (values.IsEmpty) return;
+        Read(MemoryMarshal.Cast<FrameRange, long>(values));
+    }
+
+    /// <summary>Reads a list of <see cref="FrameRange" /> from buffer into <paramref name="values" />.</summary>
+    public void Read(in List<FrameRange> values) => Read(GetListSpan(in values));
 
     /// <summary>Reads a span of <see cref="Checksum" /> from buffer into <paramref name="values" />.</summary>
     public void Read(in Span<Checksum> values)

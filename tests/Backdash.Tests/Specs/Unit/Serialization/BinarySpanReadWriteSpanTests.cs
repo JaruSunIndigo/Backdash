@@ -153,6 +153,54 @@ public class BinarySpanReadWriteSpanTests
     }
 
     [PropertyTest]
+    public bool SpanOFrame(Frame[] value, Endianness endianness)
+    {
+        var size = Setup(value, endianness, out var writer, out var reader);
+        writer.Write(value);
+        writer.WrittenCount.Should().Be(size);
+        Span<Frame> read = stackalloc Frame[value.Length];
+        reader.Read(read);
+        reader.ReadCount.Should().Be(size);
+        return value.AsSpan().SequenceEqual(read);
+    }
+
+    [PropertyTest]
+    public bool SpanOFrameSpan(FrameSpan[] value, Endianness endianness)
+    {
+        var size = Setup(value, endianness, out var writer, out var reader);
+        writer.Write(value);
+        writer.WrittenCount.Should().Be(size);
+        Span<FrameSpan> read = stackalloc FrameSpan[value.Length];
+        reader.Read(read);
+        reader.ReadCount.Should().Be(size);
+        return value.AsSpan().SequenceEqual(read);
+    }
+
+    [PropertyTest]
+    public bool SpanOFrameRange(FrameRange[] value, Endianness endianness)
+    {
+        var size = Setup(value, endianness, out var writer, out var reader);
+        writer.Write(value);
+        writer.WrittenCount.Should().Be(size);
+        Span<FrameRange> read = stackalloc FrameRange[value.Length];
+        reader.Read(read);
+        reader.ReadCount.Should().Be(size);
+        return value.AsSpan().SequenceEqual(read);
+    }
+
+    [PropertyTest]
+    public bool SpanOChecksum(Checksum[] value, Endianness endianness)
+    {
+        var size = Setup(value, endianness, out var writer, out var reader);
+        writer.Write(value);
+        writer.WrittenCount.Should().Be(size);
+        Span<Checksum> read = stackalloc Checksum[value.Length];
+        reader.Read(read);
+        reader.ReadCount.Should().Be(size);
+        return value.AsSpan().SequenceEqual(read);
+    }
+
+    [PropertyTest]
     public bool SpanOfUtf8(NonEmptyString input, Endianness endianness)
     {
         var value = input.Item;

@@ -178,6 +178,12 @@ public readonly struct BinaryBufferWriter(
     /// <summary>Writes single <see cref="Checksum" /> <paramref name="value" /> into buffer.</summary>
     public void Write(in Checksum value) => WriteAsUInt32(in value);
 
+    /// <summary>Writes single <see cref="FrameSpan" /> <paramref name="value" /> into buffer.</summary>
+    public void Write(in FrameSpan value) => WriteAsInt32(in value);
+
+    /// <summary>Writes single <see cref="FrameRange" /> <paramref name="value" /> into buffer.</summary>
+    public void Write(in FrameRange value) => WriteAsInt64(in value);
+
     #region Nullable Values
 
     /// <inheritdoc cref="Write(in byte)" />
@@ -313,6 +319,22 @@ public readonly struct BinaryBufferWriter(
 
     /// <inheritdoc cref="Write(in Checksum)" />
     public void Write(in Checksum? value)
+    {
+        Write(value.HasValue);
+        if (value.HasValue)
+            Write(in Nullable.GetValueRefOrDefaultRef(in value));
+    }
+
+    /// <inheritdoc cref="Write(in FrameSpan)" />
+    public void Write(in FrameSpan? value)
+    {
+        Write(value.HasValue);
+        if (value.HasValue)
+            Write(in Nullable.GetValueRefOrDefaultRef(in value));
+    }
+
+    /// <inheritdoc cref="Write(in FrameRange)" />
+    public void Write(in FrameRange? value)
     {
         Write(value.HasValue);
         if (value.HasValue)
@@ -524,6 +546,12 @@ public readonly struct BinaryBufferWriter(
     /// <summary>Writes a span of <see cref="Checksum" /> <paramref name="values" /> into buffer.</summary>
     public void Write(in ReadOnlySpan<Checksum> values) => Write(MemoryMarshal.Cast<Checksum, uint>(values));
 
+    /// <summary>Writes a span of <see cref="FrameSpan" /> <paramref name="values" /> into buffer.</summary>
+    public void Write(in ReadOnlySpan<FrameSpan> values) => Write(MemoryMarshal.Cast<FrameSpan, int>(values));
+
+    /// <summary>Writes a span of <see cref="FrameRange" /> <paramref name="values" /> into buffer.</summary>
+    public void Write(in ReadOnlySpan<FrameRange> values) => Write(MemoryMarshal.Cast<FrameRange, long>(values));
+
     #region Lists
 
     /// <summary>Writes a list of <see cref="byte" /> <paramref name="values" /> into buffer.</summary>
@@ -594,6 +622,12 @@ public readonly struct BinaryBufferWriter(
 
     /// <summary>Writes a list <see cref="Checksum" /> <paramref name="values" /> into buffer.</summary>
     public void Write(in List<Checksum> values) => Write(GetListSpan(in values));
+
+    /// <summary>Writes a list <see cref="FrameSpan" /> <paramref name="values" /> into buffer.</summary>
+    public void Write(in List<FrameSpan> values) => Write(GetListSpan(in values));
+
+    /// <summary>Writes a list <see cref="FrameRange" /> <paramref name="values" /> into buffer.</summary>
+    public void Write(in List<FrameRange> values) => Write(GetListSpan(in values));
 
     #endregion
 

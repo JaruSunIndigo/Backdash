@@ -307,6 +307,28 @@ public class BinaryBufferReadWriteNullableValues
     }
 
     [PropertyTest]
+    public bool TestFrameSpan(FrameSpan? value, Endianness endianness)
+    {
+        var size = Setup(value, endianness, out var writer);
+        writer.Write(value);
+        var reader = GetReader(writer);
+        var read = reader.ReadNullableFrameSpan();
+        reader.ReadCount.Should().Be(size);
+        return value == read;
+    }
+
+    [PropertyTest]
+    public bool TestFrameRange(FrameRange? value, Endianness endianness)
+    {
+        var size = Setup(value, endianness, out var writer);
+        writer.Write(value);
+        var reader = GetReader(writer);
+        var read = reader.ReadNullableFrameRange();
+        reader.ReadCount.Should().Be(size);
+        return value == read;
+    }
+
+    [PropertyTest]
     public bool UnmanagedStruct(SimpleStructData? value, Endianness endianness)
     {
         var size = Setup(value, endianness, out var writer);

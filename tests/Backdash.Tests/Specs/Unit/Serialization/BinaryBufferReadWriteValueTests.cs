@@ -350,6 +350,28 @@ public class BinaryBufferReadWriteValueTests
     }
 
     [PropertyTest]
+    public bool TestFrameSpan(FrameSpan value, FrameSpan read, Endianness endianness)
+    {
+        var size = Setup<FrameSpan>(endianness, out var writer);
+        writer.Write(value);
+        var reader = GetReader(writer);
+        reader.Read(ref read);
+        reader.ReadCount.Should().Be(size);
+        return value == read;
+    }
+
+    [PropertyTest]
+    public bool TestFrameRange(FrameRange value, FrameRange read, Endianness endianness)
+    {
+        var size = Setup<FrameRange>(endianness, out var writer);
+        writer.Write(value);
+        var reader = GetReader(writer);
+        reader.Read(ref read);
+        reader.ReadCount.Should().Be(size);
+        return value == read;
+    }
+
+    [PropertyTest]
     public bool TestChecksum(Checksum value, Checksum read, Endianness endianness)
     {
         var size = Setup<Checksum>(endianness, out var writer);

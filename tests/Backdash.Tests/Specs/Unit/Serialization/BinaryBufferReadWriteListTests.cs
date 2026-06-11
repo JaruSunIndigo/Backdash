@@ -233,6 +233,42 @@ public class BinaryBufferReadWriteListTests
     }
 
     [PropertyTest]
+    public bool ListOfFrameSpan(List<FrameSpan> value, Endianness endianness)
+    {
+        var size = Setup(value, endianness, out var writer);
+        writer.Write(value);
+        var reader = GetReader(writer);
+        List<FrameSpan> read = [];
+        reader.Read(in read);
+        reader.ReadCount.Should().Be(size);
+        return value.SequenceEqual(read);
+    }
+
+    [PropertyTest]
+    public bool ListOfFrameRange(List<FrameRange> value, Endianness endianness)
+    {
+        var size = Setup(value, endianness, out var writer);
+        writer.Write(value);
+        var reader = GetReader(writer);
+        List<FrameRange> read = [];
+        reader.Read(in read);
+        reader.ReadCount.Should().Be(size);
+        return value.SequenceEqual(read);
+    }
+
+    [PropertyTest]
+    public bool ListOfChecksum(List<Checksum> value, Endianness endianness)
+    {
+        var size = Setup(value, endianness, out var writer);
+        writer.Write(value);
+        var reader = GetReader(writer);
+        List<Checksum> read = [];
+        reader.Read(in read);
+        reader.ReadCount.Should().Be(size);
+        return value.SequenceEqual(read);
+    }
+
+    [PropertyTest]
     public bool ListOfDateTime(List<DateTime> value, Endianness endianness)
     {
         var kindSize = 1 * value.Count;

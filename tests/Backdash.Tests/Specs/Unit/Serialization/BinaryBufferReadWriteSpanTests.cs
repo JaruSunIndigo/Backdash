@@ -316,6 +316,30 @@ public class BinaryBufferReadWriteSpanTests
     }
 
     [PropertyTest]
+    public bool SpanOfFrameSpan(FrameSpan[] value, Endianness endianness)
+    {
+        var size = Setup(value, endianness, out var writer);
+        writer.Write(value);
+        var reader = GetReader(writer);
+        Span<FrameSpan> read = stackalloc FrameSpan[value.Length];
+        reader.Read(in read);
+        reader.ReadCount.Should().Be(size);
+        return value.AsSpan().SequenceEqual(read);
+    }
+
+    [PropertyTest]
+    public bool SpanOfFrameRange(FrameRange[] value, Endianness endianness)
+    {
+        var size = Setup(value, endianness, out var writer);
+        writer.Write(value);
+        var reader = GetReader(writer);
+        Span<FrameRange> read = stackalloc FrameRange[value.Length];
+        reader.Read(in read);
+        reader.ReadCount.Should().Be(size);
+        return value.AsSpan().SequenceEqual(read);
+    }
+
+    [PropertyTest]
     public bool SpanOfChecksum(Checksum[] value, Endianness endianness)
     {
         var size = Setup(value, endianness, out var writer);
