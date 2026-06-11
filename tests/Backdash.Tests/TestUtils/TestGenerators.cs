@@ -26,6 +26,15 @@ abstract class DataGenerator
 {
     static readonly Config config = Config.Default.WithArbitrary([typeof(DataGenerator)]);
 
+    static readonly IArbMap arb =
+        ArbMap.Default
+            .MergeArb(FloatGenerator())
+            .MergeArb(DoubleGenerator())
+            .MergeArb(HalfGenerator())
+            .MergeArb(FrameGenerator());
+
+    static Gen<T> Generate<T>() => arb.GeneratorFor<T>();
+
     public static Gen<T> For<T>() => config.ArbMap.GeneratorFor<T>();
 
     public static T One<T>() => For<T>().Sample(1).Single();
@@ -45,15 +54,6 @@ abstract class DataGenerator
             .Where(x => x >= (float)Half.MinValue && x < (float)Half.MaxValue)
             .Select(x => (Half)x)
             .ToArbitrary();
-
-    static readonly IArbMap arb =
-        ArbMap.Default
-            .MergeArb(FloatGenerator())
-            .MergeArb(DoubleGenerator())
-            .MergeArb(HalfGenerator())
-            .MergeArb(FrameGenerator());
-
-    static Gen<T> Generate<T>() => arb.GeneratorFor<T>();
 
     public static Arbitrary<Frame> FrameGenerator() =>
         ArbMap.Default.GeneratorFor<PositiveInt>()
