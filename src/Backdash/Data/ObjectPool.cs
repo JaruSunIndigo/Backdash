@@ -16,25 +16,10 @@ public interface IObjectPool<T>
     /// </summary>
     T Rent();
 
-    /// <inheritdoc cref="Rent()"/>
-    void Rent(ICollection<T> values, int count);
-
     /// <summary>
     ///     Return <paramref name="value" /> to the pool
     /// </summary>
     bool Return(T value);
-
-    /// <inheritdoc cref="Return(T)"/>
-    bool Return(ref T? value);
-
-    /// <inheritdoc cref="Return(T)"/>
-    bool ReturnAll(List<T> list);
-
-    /// <inheritdoc cref="Return(T)"/>
-    bool ReturnMany(ReadOnlySpan<T> values);
-
-    /// <inheritdoc cref="Return(T)"/>
-    bool ReturnMany(IEnumerable<T> values);
 }
 
 /// <summary>
@@ -103,7 +88,7 @@ public sealed class ObjectPool<T> : IObjectPool<T>, IEnumerable<T>, IDisposable 
         return item;
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="IObjectPool{T}.Rent" />
     public void Rent(ICollection<T> values, int count)
     {
         for (var i = 0; i < count; i++)
@@ -131,7 +116,7 @@ public sealed class ObjectPool<T> : IObjectPool<T>, IEnumerable<T>, IDisposable 
         return true;
     }
 
-    /// <inheritdoc />
+    /// <inheritdoc cref="Return(T)"/>
     public bool Return(ref T? value)
     {
         if (value is null || !Return(value)) return false;
@@ -273,22 +258,26 @@ public static class ObjectPool
     /// </summary>
     public static ObjectPool<T> Singleton<T>() where T : class, new() => SingletonWrapper<T>.Instance;
 
-    /// <inheritdoc cref="IObjectPool{T}.Rent()"/>
+    /// <inheritdoc cref="ObjectPool{T}.Rent()"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T Rent<T>() where T : class, new() => Singleton<T>().Rent();
 
-    /// <inheritdoc cref="IObjectPool{T}.Rent(ICollection{T}, int)"/>
+    /// <inheritdoc cref="ObjectPool{T}.Rent(ICollection{T}, int)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Rent<T>(ICollection<T> values, int count) where T : class, new() =>
         Singleton<T>().Rent(values, count);
 
-    /// <inheritdoc cref="IObjectPool{T}.Return(T)"/>
+    /// <inheritdoc cref="ObjectPool{T}.Return(T)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Return<T>(T value) where T : class, new() => Singleton<T>().Return(value);
 
-    /// <inheritdoc cref="IObjectPool{T}.Return(ref T)"/>
+    /// <inheritdoc cref="ObjectPool{T}.Return(ref T)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Return<T>(ref T? value) where T : class, new() => Singleton<T>().Return(ref value);
+
+    /// <inheritdoc cref="ObjectPool{T}.ReturnAll"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool ReturnAll<T>(List<T> value) where T : class, new() => Singleton<T>().ReturnAll(value);
 
     static class SingletonWrapper<T> where T : class, new()
     {
