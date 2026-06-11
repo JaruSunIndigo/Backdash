@@ -22,6 +22,19 @@ public class ObjectPoolTests
     }
 
     [Fact]
+    public void ShouldRentAndReturnSettingNullRefObject()
+    {
+        var sut = ObjectPool.Create<TestObj>();
+        TestObj? value = sut.Rent();
+        value.Should().NotBeNull();
+        sut.Count.Should().Be(0);
+
+        sut.Return(ref value);
+        sut.Count.Should().Be(1);
+        value.Should().BeNull();
+    }
+
+    [Fact]
     public void ShouldNotReturnSameObjectTwice()
     {
         var sut = ObjectPool.Create<TestObj>();
@@ -106,17 +119,67 @@ public class ObjectPoolTests
         rents.Should().AllSatisfy(r => r.Disposed.Should().BeTrue());
     }
 
+    [Fact]
+    public void ShouldReturnAndClearList()
+    {
+        const int cap = 10;
+        var sut = ObjectPool.Create<TestObj>();
+        List<TestObj> buffer = new(cap);
+        sut.Rent(buffer, cap);
+        buffer.Count.Should().Be(cap);
+        sut.Count.Should().Be(0);
+
+        sut.ReturnAll(buffer).Should().BeTrue();
+        buffer.Count.Should().Be(0);
+        sut.Count.Should().Be(cap);
+    }
+
+    [Fact]
+    public void ShouldReturnRepeatedListItems()
+    {
+        const int cap = 10;
+        var sut = ObjectPool.Create<TestObj>();
+        List<TestObj> buffer = new(cap);
+        sut.Rent(buffer, cap);
+        sut.Count.Should().Be(0);
+
+        var copy = buffer.ToList();
+        Random.Shared.Shuffle(copy);
+        buffer.AddRange(copy);
+        buffer.Distinct().Count().Should().Be(cap);
+
+        sut.ReturnAll(buffer).Should().BeTrue();
+        buffer.Count.Should().Be(0);
+        sut.Count.Should().Be(cap);
+    }
+
+    [Fact]
+    public void ShouldReturnAndKeepNonReturnedList()
+    {
+        const int cap = 5;
+        var sut = ObjectPool.Create<TestObj>(cap);
+        List<TestObj> buffer = new(cap + 1);
+        sut.Rent(buffer, buffer.Capacity);
+        sut.Count.Should().Be(0);
+
+        sut.ReturnAll(buffer).Should().BeFalse();
+        buffer.Count.Should().Be(1);
+        sut.Count.Should().Be(cap);
+    }
+
     static void FillPool(ObjectPool<TestObj> sut, int count) =>
         Enumerable.Repeat<object?>(null, count)
             .Select(_ => sut.Rent())
             .ToList()
             .ForEach(x => sut.Return(x));
 
-    [Serializable]
     sealed class TestObj
     {
-        public int Value { get; set; }
+        static int index;
+        public int Value { get; set; } = Interlocked.Increment(ref index);
         public bool Returned { get; set; }
+
+        public override string ToString() => $"{(Returned ? "###" : "")}Obj[{Value}]";
     }
 
     sealed class TestObjDisposable : IDisposable

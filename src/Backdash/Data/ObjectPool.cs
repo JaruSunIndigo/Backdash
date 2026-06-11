@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -15,29 +16,39 @@ public interface IObjectPool<T>
     /// </summary>
     T Rent();
 
+    /// <inheritdoc cref="Rent()"/>
+    void Rent(ICollection<T> values, int count);
+
     /// <summary>
     ///     Return <paramref name="value" /> to the pool
     /// </summary>
     bool Return(T value);
+
+    /// <inheritdoc cref="Return(T)"/>
+    bool Return(ref T? value);
+
+    /// <inheritdoc cref="Return(T)"/>
+    bool ReturnAll(List<T> list);
+
+    /// <inheritdoc cref="Return(T)"/>
+    bool ReturnMany(ReadOnlySpan<T> values);
+
+    /// <inheritdoc cref="Return(T)"/>
+    bool ReturnMany(IEnumerable<T> values);
 }
 
 /// <summary>
-///     Default object pool for types with empty constructor
+///     Default object pool for types with empty constructor.
 /// </summary>
 public sealed class ObjectPool<T> : IObjectPool<T>, IEnumerable<T>, IDisposable where T : class
 {
-    /// <summary>
-    ///     Maximum number of objects allowed in the pool
-    /// </summary>
-    public int Capacity { get; } // -1 to account for fastItem
-
-    int numItems;
-    T? fastItem;
     readonly Stack<T> items;
     readonly HashSet<T> set;
     readonly Func<T> createFunc;
     readonly Action<T>? returnFunc;
     readonly IEqualityComparer<T> comparer;
+    readonly int poolCapacity;
+    T? fastItem;
 
     /// <summary>
     ///     Instantiate new <see cref="ObjectPool{T}" />
@@ -49,14 +60,29 @@ public sealed class ObjectPool<T> : IObjectPool<T>, IEnumerable<T>, IDisposable 
         IEqualityComparer<T>? comparer = null
     )
     {
+        ArgumentNullException.ThrowIfNull(createFunc);
+        if (capacity is not null)
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity.Value);
+
         this.createFunc = createFunc;
         this.returnFunc = returnFunc;
         this.comparer = comparer ?? ReferenceEqualityComparer.Instance;
-        Capacity = (capacity ?? 100) - 1;
-        items = new(Capacity);
-        set = new(Capacity, this.comparer);
+        poolCapacity = Math.Max((capacity ?? 100) - 1, 0); // -1 to account for fastItem
+        items = new(poolCapacity);
+        set = new(poolCapacity, this.comparer);
     }
 
+    /// <summary>
+    ///     Maximum number of objects allowed in the pool
+    /// </summary>
+    public int Capacity => poolCapacity + 1;
+
+    /// <summary>
+    ///     Number of instances in the object pool
+    /// </summary>
+    public int Count => items.Count + (fastItem is null ? 0 : 1);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     bool Contains(T value) => comparer.Equals(fastItem, value) || set.Contains(value);
 
     /// <inheritdoc />
@@ -73,9 +99,15 @@ public sealed class ObjectPool<T> : IObjectPool<T>, IEnumerable<T>, IDisposable 
         if (!items.TryPop(out item))
             return createFunc();
 
-        numItems--;
         set.Remove(item);
         return item;
+    }
+
+    /// <inheritdoc />
+    public void Rent(ICollection<T> values, int count)
+    {
+        for (var i = 0; i < count; i++)
+            values.Add(Rent());
     }
 
     /// <inheritdoc />
@@ -84,50 +116,98 @@ public sealed class ObjectPool<T> : IObjectPool<T>, IEnumerable<T>, IDisposable 
         ArgumentNullException.ThrowIfNull(value);
         if (Contains(value)) return true;
 
-        returnFunc?.Invoke(value);
-
         if (fastItem is null)
         {
+            returnFunc?.Invoke(value);
             fastItem = value;
             return true;
         }
 
-        if (numItems >= Capacity)
+        if (items.Count >= poolCapacity)
             return false;
 
-        if (!set.Add(value)) return true;
-        numItems++;
-        items.Push(value);
+        returnFunc?.Invoke(value);
+        if (set.Add(value)) items.Push(value);
         return true;
     }
 
-    /// <inheritdoc cref="Return"/>
-    public bool ReturnMany(params T[] values)
+    /// <inheritdoc />
+    public bool Return(ref T? value)
+    {
+        if (value is null || !Return(value)) return false;
+        value = null;
+        return true;
+    }
+
+    /// <inheritdoc cref="Return(T)"/>
+    public bool ReturnAll(List<T> list)
     {
         var result = true;
-
-        ref var current = ref MemoryMarshal.GetReference(values.AsSpan());
+        var values = CollectionsMarshal.AsSpan(list);
+        ref var current = ref MemoryMarshal.GetReference(values);
         ref var limit = ref Unsafe.Add(ref current, values.Length);
 
         while (Unsafe.IsAddressLessThan(ref current, ref limit))
         {
-            result = result && Return(current);
+            var returned = Return(current);
+            ref var next = ref Unsafe.Add(ref current, 1)!;
+            if (returned)
+                current = null!;
+            else
+                result = false;
+
+            current = ref next;
+        }
+
+        if (result)
+            list.Clear();
+        else
+            list.RemoveAll(x => (object?)x is null);
+
+        return result;
+    }
+
+    /// <inheritdoc cref="Return(T)"/>
+    public bool ReturnMany(ReadOnlySpan<T> values)
+    {
+        var result = true;
+        ref var current = ref MemoryMarshal.GetReference(values);
+        ref var limit = ref Unsafe.Add(ref current, values.Length);
+
+        while (Unsafe.IsAddressLessThan(ref current, ref limit))
+        {
+            result &= Return(current);
             current = ref Unsafe.Add(ref current, 1)!;
         }
 
         return result;
     }
 
-    /// <inheritdoc cref="ReturnMany(T[])"/>
-    public bool ReturnMany(IEnumerable<T> values) =>
-        values.Aggregate(true, (result, current) => result && Return(current));
+    /// <inheritdoc cref="ReturnMany(System.ReadOnlySpan{T})"/>
+    public bool ReturnMany(IEnumerable<T> values)
+    {
+        switch (values)
+        {
+            case T[] array:
+                return ReturnMany(array.AsSpan());
+            case ImmutableArray<T> array:
+                return ReturnMany(array.AsSpan());
+            case List<T> list:
+                return ReturnMany(CollectionsMarshal.AsSpan(list));
+            default:
+                var result = true;
+                foreach (var item in values)
+                    result &= Return(item);
+
+                return result;
+        }
+    }
 
     /// <summary>
     ///     Clear the object pool
     /// </summary>
     public void Clear()
     {
-        numItems = 0;
         fastItem = null;
         items.Clear();
         set.Clear();
@@ -138,15 +218,11 @@ public sealed class ObjectPool<T> : IObjectPool<T>, IEnumerable<T>, IDisposable 
     /// </summary>
     public void WarmUp(int count)
     {
-        List<T> temp = [];
+        count = Math.Min(count, Capacity);
+        List<T> temp = new(count);
         for (var i = 0; i < count; i++) temp.Add(Rent());
         foreach (var player in temp) Return(player);
     }
-
-    /// <summary>
-    ///     Number of instances in the object pool
-    /// </summary>
-    public int Count => numItems + (fastItem is null ? 0 : 1);
 
     /// <summary>
     ///     Dispose all disposable objects in the pool
@@ -162,9 +238,14 @@ public sealed class ObjectPool<T> : IObjectPool<T>, IEnumerable<T>, IDisposable 
     }
 
     /// <inheritdoc cref="IEnumerable{T}.GetEnumerator"/>
-    public Stack<T>.Enumerator GetEnumerator() => items.GetEnumerator();
+    public IEnumerator<T> GetEnumerator()
+    {
+        if (fastItem is not null)
+            yield return fastItem;
 
-    IEnumerator<T> IEnumerable<T>.GetEnumerator() => GetEnumerator();
+        foreach (var item in items)
+            yield return item;
+    }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }
@@ -191,6 +272,23 @@ public static class ObjectPool
     /// Object pool singleton factory
     /// </summary>
     public static ObjectPool<T> Singleton<T>() where T : class, new() => SingletonWrapper<T>.Instance;
+
+    /// <inheritdoc cref="IObjectPool{T}.Rent()"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static T Rent<T>() where T : class, new() => Singleton<T>().Rent();
+
+    /// <inheritdoc cref="IObjectPool{T}.Rent(ICollection{T}, int)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Rent<T>(ICollection<T> values, int count) where T : class, new() =>
+        Singleton<T>().Rent(values, count);
+
+    /// <inheritdoc cref="IObjectPool{T}.Return(T)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool Return<T>(T value) where T : class, new() => Singleton<T>().Return(value);
+
+    /// <inheritdoc cref="IObjectPool{T}.Return(ref T)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool Return<T>(ref T? value) where T : class, new() => Singleton<T>().Return(ref value);
 
     static class SingletonWrapper<T> where T : class, new()
     {

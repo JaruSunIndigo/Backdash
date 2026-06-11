@@ -45,6 +45,10 @@ public static class NetcodeExtensions
     public static bool NextBool(this Random random, double percentage) =>
         random.NextDouble() < Math.Clamp(percentage, 0.0, 1.0);
 
+    /// <inheritdoc cref="System.Random.Shuffle{T}(T[])"/>
+    public static void Shuffle<T>(this Random random, List<T> values) =>
+        random.Shuffle(CollectionsMarshal.AsSpan(values));
+
     /// <summary>
     /// Fill <paramref name="value"/> with random values.
     /// </summary>

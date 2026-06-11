@@ -540,10 +540,52 @@ public class BinaryBufferReadWriteListTests
             return new();
         }
 
+        public void Rent(ICollection<T> values, int count)
+        {
+            for (var i = 0; i < count; i++)
+                values.Add(Rent());
+        }
+
         public bool Return(T value)
         {
             returned.Add(value);
             return true;
         }
+
+        public bool Return(ref T? value)
+        {
+            if (value is null || !Return(value)) return false;
+            value = default;
+            return true;
+        }
+
+        public bool ReturnAll(List<T> list)
+        {
+            var result = true;
+            List<int> removeIdx = [];
+
+            for (var i = 0; i < list.Count; i++)
+            {
+                var current = list[i];
+                if (Return(current))
+                    removeIdx.Add(i);
+                else
+                    result = false;
+            }
+
+            foreach (var idx in removeIdx)
+                list.RemoveAt(idx);
+
+            return result;
+        }
+
+        public bool ReturnMany(IEnumerable<T> values) =>
+            values.Aggregate(true, (result, current) =>
+            {
+                var ret = Return(current);
+                return result && ret;
+            });
+
+        public bool ReturnMany(ReadOnlySpan<T> values) => ReturnMany(values.ToArray().AsEnumerable());
     }
 }
