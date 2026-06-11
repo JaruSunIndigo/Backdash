@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -94,6 +95,13 @@ public sealed class ObjectPool<T> : IObjectPool<T>, IEnumerable<T>, IDisposable 
         for (var i = 0; i < count; i++)
             values.Add(Rent());
     }
+
+    /// <summary>
+    /// Ensure object exists, if null rent next value into it.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Ensure([NotNull] ref T? value) =>
+        value ??= Rent();
 
     /// <inheritdoc />
     public bool Return(T value)
@@ -266,6 +274,10 @@ public static class ObjectPool
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Rent<T>(ICollection<T> values, int count) where T : class, new() =>
         Singleton<T>().Rent(values, count);
+
+    /// <inheritdoc cref="ObjectPool{T}.Ensure(ref T)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Ensure<T>([NotNull] ref T? value) where T : class, new() => Singleton<T>().Ensure(ref value);
 
     /// <inheritdoc cref="ObjectPool{T}.Return(T)"/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
