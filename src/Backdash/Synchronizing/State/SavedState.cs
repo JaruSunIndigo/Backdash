@@ -11,6 +11,9 @@ namespace Backdash.Synchronizing.State;
 /// <param name="Checksum">Checksum of state</param>
 public sealed record SavedState(Frame Frame, ArrayBufferWriter<byte> GameState, Checksum Checksum)
 {
+    /// <inheritdoc />
+    public SavedState(int hintSize) : this(Frame.Null, new(hintSize), Checksum.Empty) { }
+
     /// <summary>Saved frame number</summary>
     public Frame Frame = Frame;
 
@@ -25,4 +28,12 @@ public sealed record SavedState(Frame Frame, ArrayBufferWriter<byte> GameState, 
 
     /// <summary>Returns a snapshot of the current saved state</summary>
     public StateSnapshot ToSnapshot() => new(Frame, Checksum, GameState.WrittenSpan.ToArray());
+
+    /// <summary>Clear current saved state</summary>
+    public void Clear()
+    {
+        Frame = Frame.Null;
+        Checksum = Checksum.Empty;
+        GameState.Clear();
+    }
 }

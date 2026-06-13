@@ -18,12 +18,20 @@ public sealed class DefaultStateStore(int hintSize) : IStateStore
     public void Initialize(int saveCount)
     {
         savedStates = new SavedState[saveCount];
-        for (var i = 0; i < saveCount; i++)
-            savedStates[i] = new(Frame.Null, new(hintSize), Checksum.Empty);
+        for (var i = 0; i < savedStates.Length; i++)
+            savedStates[i] = new(hintSize);
     }
 
     /// <inheritdoc />
     public void Advance() => head = (head + 1) % savedStates.Length;
+
+    /// <inheritdoc />
+    public void Clear()
+    {
+        head = 0;
+        foreach (var state in savedStates)
+            state.Clear();
+    }
 
     /// <inheritdoc />
     public ref SavedState Next()

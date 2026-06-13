@@ -310,6 +310,7 @@ sealed class LocalSession<TInput> : INetcodeSession<TInput> where TInput : unman
     void ResetInputQueues()
     {
         CurrentFrame = Frame.Zero;
+        stateStore.Clear();
         ref var current = ref MemoryMarshal.GetReference(inputQueues.AsSpan());
         ref var limit = ref Unsafe.Add(ref current, inputQueues.Length);
         while (Unsafe.IsAddressLessThan(ref current, ref limit))
