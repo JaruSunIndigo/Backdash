@@ -282,6 +282,9 @@ sealed class LocalSession<TInput> : INetcodeSession<TInput> where TInput : unman
 
     public void LoadSnapshot(StateSnapshot snapshot)
     {
+        if (snapshot.Frame > CurrentFrame)
+            snapshot.Frame = Frame.Zero;
+
         if (snapshot.Frame.Number >= 0)
         {
             TryDropSavedInputsAfter(snapshot.Frame);
