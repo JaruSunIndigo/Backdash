@@ -41,26 +41,23 @@ sealed class Synchronizer<TInput> where TInput : unmanaged
         this.options = options;
         this.logger = logger;
         this.players = players;
-        this.Store = stateStore;
         this.checksumProvider = checksumProvider;
         this.localConnections = localConnections;
         this.inputComparer = inputComparer ?? EqualityComparer<TInput>.Default;
         this.checksumStore = checksumStore;
-
+        Store = stateStore;
         inputQueues = new(2);
         NumberSerializer = options.GetEndiannessNumberStateSerializer();
         var saveBufferSize = options.TotalSavedFramesAllowed;
         stateStore.Initialize(saveBufferSize);
     }
 
+    float rollbackFrameCounter;
+
     public bool InRollback { get; private set; }
     public IStateStore Store { get; }
     public EndiannessSerializer.INumberSerializer NumberSerializer { get; }
-
-    float rollbackFrameCounter;
-
     public Frame CurrentFrame => currentFrame;
-
     public Endianness SerializationEndianness => NumberSerializer.Endianness;
     public FrameSpan FramesBehind => new(currentFrame.Number - lastConfirmedFrame.Number);
     public FrameSpan RollbackFrames => new((int)Math.Round(rollbackFrameCounter));
@@ -187,6 +184,7 @@ sealed class Synchronizer<TInput> where TInput : unmanaged
         var rollbackCount = currentFrame.Number - seekTo.Number;
         logger.Write(LogLevel.Debug, $"Catching up. rolling back {rollbackCount} frames");
         InRollback = true;
+        Callbacks.BeginRollback(currentFrame);
 
         // Flush our input queue and load the last frame.
         LoadFrame(seekTo);
@@ -202,6 +200,7 @@ sealed class Synchronizer<TInput> where TInput : unmanaged
 
         ThrowIf.Assert(currentFrame == localCurrentFrame);
         InRollback = false;
+        Callbacks.EndRollback(currentFrame);
     }
 
     public bool TryLoadFrame(Frame frame)

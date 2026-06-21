@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 
@@ -26,6 +27,9 @@ static class ThrowIf
             throw new ArgumentOutOfRangeException($"Invalid Enum of type {typeof(T).Name} for {argName}: {value}");
     }
 
+    [Conditional("DEBUG")]
+    [Conditional("TRACE")]
+    [Conditional("TOOLS")]
     public static void Assert(
         bool condition,
         string? info = null,

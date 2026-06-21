@@ -69,6 +69,16 @@ public interface INetcodeSessionHandler
     object? CreateState(Frame frame, ref readonly BinaryBufferReader reader) => null;
 
     /// <summary>
+    ///     Notification that a rollback is started.
+    /// </summary>
+    void BeginRollback(Frame frame) { }
+
+    /// <summary>
+    ///     Notification that a rollback is ended.
+    /// </summary>
+    void EndRollback(Frame frame) { }
+
+    /// <summary>
     ///     Called when a replay session run all inputs
     /// </summary>
     /// <seealso cref="SessionMode.Replay" />

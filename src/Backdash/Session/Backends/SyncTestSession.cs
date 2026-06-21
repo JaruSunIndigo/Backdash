@@ -333,6 +333,7 @@ sealed class SyncTestSession<TInput> : INetcodeSession<TInput>
         synchronizer.LoadFrame(lastVerified);
 
         inRollback = true;
+        callbacks.BeginRollback(CurrentFrame);
         while (savedFrames.Count > 0)
         {
             callbacks.AdvanceFrame();
@@ -365,6 +366,7 @@ sealed class SyncTestSession<TInput> : INetcodeSession<TInput>
 
         lastVerified = frame;
         inRollback = false;
+        callbacks.EndRollback(CurrentFrame);
     }
 
     void HandleDesync(Frame frame, SavedFrameBytes current, SavedState previous)
