@@ -718,6 +718,18 @@ public readonly struct BinaryBufferWriter(
         }
     }
 
+    /// <summary>Writes a maybe null <see cref="string" /> <paramref name="value" /> into buffer.</summary>
+    public void WriteNullable(string? value)
+    {
+        if (value is null)
+            Write(false);
+        else
+        {
+            Write(true);
+            Write(value);
+        }
+    }
+
     /// <summary>Writes an unmanaged struct into buffer.</summary>
     public void WriteStruct<T>(in T value) where T : unmanaged
     {

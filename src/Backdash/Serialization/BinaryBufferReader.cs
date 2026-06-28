@@ -330,6 +330,10 @@ public readonly ref struct BinaryBufferReader
         return new(charBuffer);
     }
 
+    /// <summary>Reads and allocates an <see cref="string" /> from the buffer.</summary>
+    public string? ReadNullableString(int size) =>
+        ReadBoolean() ? ReadString(size) : null;
+
     /// <summary>Reads a span of UTF8 <see cref="char" /> from the buffer into <paramref name="values" />.</summary>
     public void ReadUtf8String(in Span<char> values)
     {
