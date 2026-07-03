@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Backdash.Core;
 
 namespace Backdash.Network;
@@ -19,7 +20,7 @@ public enum LatencyStrategy
 
 interface ILatencyStrategy
 {
-    TimeSpan Jitter(TimeSpan sendLatency);
+    double Jitter(double latencyMs);
 }
 
 static class DelayStrategyFactory
@@ -35,29 +36,62 @@ static class DelayStrategyFactory
 
 sealed class ConstantLatencyStrategy : ILatencyStrategy
 {
-    public TimeSpan Jitter(TimeSpan sendLatency) => sendLatency;
+    public double Jitter(double latencyMs) => latencyMs;
 }
 
 sealed class UniformLatencyStrategy(IRandomNumberGenerator random) : ILatencyStrategy
 {
-    public TimeSpan Jitter(TimeSpan sendLatency)
+    public double Jitter(double latencyMs)
     {
-        var latency = sendLatency.TotalMilliseconds;
-        var mean = latency * 2 / 3;
-        var ms = mean + (random.NextInt() % latency / 3);
-        return TimeSpan.FromMilliseconds(ms);
+        var mean = latencyMs * 2.0 / 3.0;
+        return (latencyMs / 3.0) + (random.NextDouble() * mean);
     }
 }
 
 sealed class GaussianLatencyStrategy(IRandomNumberGenerator random) : ILatencyStrategy
 {
-    public TimeSpan Jitter(TimeSpan sendLatency)
+    public double Jitter(double latencyMs)
     {
-        var latency = sendLatency.TotalMilliseconds;
-        var mean = latency / 2;
-        var sigma = (latency - mean) / 3;
+        var mean = latencyMs / 2.0;
+        var sigma = (latencyMs - mean) / 3.0;
         var std = random.NextGaussian();
-        var ms = (int)Math.Clamp((std * sigma) + mean, 0, latency);
-        return TimeSpan.FromMilliseconds(ms);
+        return Math.Clamp((std * sigma) + mean, 0.0, latencyMs);
+    }
+}
+
+sealed class LatencyWaiter
+{
+    readonly double jitterRange;
+    readonly double baseLatency;
+    readonly ILatencyStrategy strategy;
+
+    LatencyWaiter(ILatencyStrategy strategy, TimeSpan jitterRange, TimeSpan baseLatency)
+    {
+        this.strategy = strategy;
+        this.jitterRange = jitterRange.TotalMilliseconds;
+        this.baseLatency = baseLatency.TotalMilliseconds;
+    }
+
+    public void Wait(long timestamp)
+    {
+        var delayMs = baseLatency + strategy.Jitter(jitterRange);
+        var delayTicks = (long)(delayMs * (Stopwatch.Frequency / 1000.0));
+        var deadline = timestamp + delayTicks;
+
+        // LATER: validate usage of Task.Delay
+        SpinWait sw = new();
+        while (Stopwatch.GetTimestamp() < deadline)
+            sw.SpinOnce();
+    }
+
+    public static LatencyWaiter? Create(
+        ILatencyStrategy strategy,
+        TimeSpan jitterRange,
+        TimeSpan? baseLatency = null
+    )
+    {
+        var fixLatency = baseLatency ?? TimeSpan.Zero;
+        if (fixLatency + jitterRange <= TimeSpan.Zero) return null;
+        return new(strategy, jitterRange, fixLatency);
     }
 }

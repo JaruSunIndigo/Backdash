@@ -17,9 +17,9 @@ public static class NetcodeExtensions
     }
 
     /// <summary>
-    /// Return random gaussian number.
+    /// Return random gaussian numbers.
     /// </summary>
-    public static double NextGaussian(this Random @this)
+    public static void NextGaussian(this Random @this, out double first, out double second)
     {
         double u, v, s;
         do
@@ -27,10 +27,20 @@ public static class NetcodeExtensions
             u = (2.0 * @this.NextDouble()) - 1.0;
             v = (2.0 * @this.NextDouble()) - 1.0;
             s = (u * u) + (v * v);
-        } while (s >= 1.0);
+        } while (s is >= 1.0 or 0.0);
 
         var fac = Math.Sqrt(-2.0 * Math.Log(s) / s);
-        return u * fac;
+        first = u * fac;
+        second = v * fac;
+    }
+
+    /// <summary>
+    /// Return random gaussian number.
+    /// </summary>
+    public static double NextGaussian(this Random @this)
+    {
+        @this.NextGaussian(out double first, out _);
+        return first;
     }
 
     /// <summary>

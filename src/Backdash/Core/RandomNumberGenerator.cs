@@ -6,6 +6,7 @@ interface IRandomNumberGenerator
 {
     ushort SyncNumber();
     int NextInt();
+    double NextDouble();
     double NextGaussian();
 }
 
@@ -20,6 +21,7 @@ sealed class DefaultRandomNumberGenerator(Random random) : IRandomNumberGenerato
     }
 
     public int NextInt() => random.Next();
+    public double NextDouble() => random.NextDouble();
 
     public double NextGaussian() => random.NextGaussian();
 }

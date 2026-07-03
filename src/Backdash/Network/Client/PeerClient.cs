@@ -25,19 +25,17 @@ public interface IMessageHandler<T> where T : struct
 
 sealed class PeerClient<T> : INetcodeJob, IDisposable, IAsyncDisposable where T : struct
 {
-    readonly IPeerSocket socket;
     readonly IPeerObserver<T> observer;
     readonly IBinarySerializer<T> serializer;
     readonly Logger logger;
-    readonly ILatencyStrategy? delayStrategy;
+    readonly LatencyWaiter? latencyWaiter;
     readonly int maxPacketSize;
     readonly int receiveSocketAddressSize;
     readonly Channel<QueueEntry> sendQueue;
     CancellationTokenSource? cancellation;
     public string JobName { get; }
 
-    public TimeSpan NetworkLatency = TimeSpan.Zero;
-    public IPeerSocket Socket => socket;
+    public IPeerSocket Socket { get; }
 
     struct QueueEntry(T body, SocketAddress recipient, long queuedAt, IMessageHandler<T>? callback)
     {
@@ -52,7 +50,7 @@ sealed class PeerClient<T> : INetcodeJob, IDisposable, IAsyncDisposable where T 
         IBinarySerializer<T> serializer,
         IPeerObserver<T> observer,
         Logger logger,
-        ILatencyStrategy? delayStrategy = null,
+        LatencyWaiter? latencyWaiter = null,
         int maxPacketSize = Max.UdpPacketSize,
         int maxPackageQueue = Max.PackageQueue,
         int receiveSocketAddressSize = 0
@@ -63,11 +61,11 @@ sealed class PeerClient<T> : INetcodeJob, IDisposable, IAsyncDisposable where T 
         ArgumentNullException.ThrowIfNull(serializer);
         ArgumentNullException.ThrowIfNull(logger);
 
-        this.socket = socket;
+        Socket = socket;
         this.observer = observer;
         this.serializer = serializer;
         this.logger = logger;
-        this.delayStrategy = delayStrategy;
+        this.latencyWaiter = latencyWaiter;
         this.maxPacketSize = maxPacketSize;
 
         this.receiveSocketAddressSize =
@@ -100,7 +98,7 @@ sealed class PeerClient<T> : INetcodeJob, IDisposable, IAsyncDisposable where T 
         await Task.WhenAll(StartReceiving(token), StartSending(token)).ConfigureAwait(false);
     }
 
-    public int BindPort => socket.Port;
+    public int BindPort => Socket.Port;
 
     async Task StartSending(CancellationToken cancellationToken)
     {
@@ -118,23 +116,12 @@ sealed class PeerClient<T> : INetcodeJob, IDisposable, IAsyncDisposable where T 
 
                 while (reader.TryRead(out var entry))
                 {
-                    if (NetworkLatency > TimeSpan.Zero && delayStrategy is not null)
-                    {
-                        var jitter = delayStrategy.Jitter(NetworkLatency);
-                        SpinWait sw = new();
-                        while (Stopwatch.GetElapsedTime(entry.QueuedAt) <= jitter)
-                        {
-                            sw.SpinOnce();
-                            // LATER: allocations here with Task.Delay
-                            // await Task.Delay(delayDiff, ct).ConfigureAwait(false)
-                        }
-                    }
-
+                    latencyWaiter?.Wait(entry.QueuedAt);
                     entry.Callback?.BeforeSendMessage(ref entry.Body);
 
                     // LATER: move the .Span outside the loop (requires >=.NET10)
                     var bodySize = serializer.Serialize(in entry.Body, buffer.Span);
-                    var sentSize = await socket.SendToAsync(buffer[..bodySize], entry.Recipient, cancellationToken)
+                    var sentSize = await Socket.SendToAsync(buffer[..bodySize], entry.Recipient, cancellationToken)
                         .ConfigureAwait(false);
 
                     ThrowIf.Assert(sentSize == bodySize);
@@ -165,14 +152,14 @@ sealed class PeerClient<T> : INetcodeJob, IDisposable, IAsyncDisposable where T 
     async Task StartReceiving(CancellationToken cancellationToken)
     {
         var buffer = Mem.AllocatePinnedArray(maxPacketSize);
-        SocketAddress address = new(socket.AddressFamily, receiveSocketAddressSize);
+        SocketAddress address = new(Socket.AddressFamily, receiveSocketAddressSize);
         T msg = default;
         while (!cancellationToken.IsCancellationRequested)
         {
             int receivedSize;
             try
             {
-                receivedSize = await socket
+                receivedSize = await Socket
                     .ReceiveFromAsync(buffer, address, cancellationToken)
                     .ConfigureAwait(false);
             }
@@ -227,7 +214,7 @@ sealed class PeerClient<T> : INetcodeJob, IDisposable, IAsyncDisposable where T 
         if (cancellation is { IsCancellationRequested: false })
             await cancellation.CancelAsync();
 
-        socket.Close();
+        Socket.Close();
     }
 
     public void Stop()
@@ -237,7 +224,7 @@ sealed class PeerClient<T> : INetcodeJob, IDisposable, IAsyncDisposable where T 
         if (cancellation is { IsCancellationRequested: false })
             cancellation.Cancel();
 
-        socket.Close();
+        Socket.Close();
     }
 
     public void Dispose()
@@ -255,6 +242,6 @@ sealed class PeerClient<T> : INetcodeJob, IDisposable, IAsyncDisposable where T 
     void DisposeInternal()
     {
         cancellation?.Dispose();
-        socket.Dispose();
+        Socket.Dispose();
     }
 }

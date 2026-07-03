@@ -335,17 +335,24 @@ public sealed class NetcodeSessionBuilder<TInput> where TInput : unmanaged
     ///     Sets <see cref="NetcodeOptions.Protocol"/>.<see cref="ProtocolOptions.NetworkLatency" /> option.
     /// </summary>
     /// <seealso cref="LatencyStrategy" />
-    public NetcodeSessionBuilder<TInput> WithNetworkLatency(TimeSpan latency, LatencyStrategy? strategy = null) =>
+    public NetcodeSessionBuilder<TInput> WithNetworkLatency(
+        TimeSpan latency, LatencyStrategy? strategy = null, TimeSpan? fixedLatency = null
+    ) =>
         ConfigureProtocol(o =>
         {
             o.NetworkLatency = latency;
-            if (strategy.HasValue)
-                o.LatencyStrategy = strategy.Value;
+            if (strategy.HasValue) o.LatencyStrategy = strategy.Value;
+            if (fixedLatency.HasValue) o.FixedNetworkLatency = fixedLatency.Value;
         });
 
-    /// <inheritdoc cref="WithNetworkLatency(TimeSpan, LatencyStrategy?)"/>>
-    public NetcodeSessionBuilder<TInput> WithNetworkLatency(long milliseconds, LatencyStrategy? strategy = null) =>
-        WithNetworkLatency(TimeSpan.FromMilliseconds(milliseconds), strategy);
+    /// <inheritdoc cref="WithNetworkLatency(TimeSpan, LatencyStrategy?, TimeSpan?)"/>>
+    public NetcodeSessionBuilder<TInput> WithNetworkLatency(
+        long milliseconds, LatencyStrategy? strategy = null, long? fixedLatency = null
+    ) =>
+        WithNetworkLatency(
+            TimeSpan.FromMilliseconds(milliseconds), strategy,
+            fixedLatency is { } fix ? TimeSpan.FromMilliseconds(fix) : null
+        );
 
     /// <summary>
     ///     Set the logger <see cref="ServicesConfig{TInput}.LogWriter" />

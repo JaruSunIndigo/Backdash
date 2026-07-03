@@ -56,6 +56,13 @@ public sealed record ProtocolOptions
     public int MaxSyncRetries { get; set; } = 64;
 
     /// <summary>
+    ///     Base network packet sending latency for the current peer.
+    /// </summary>
+    /// <value>Defaults to <see cref="TimeSpan.Zero" /></value>
+    /// <seealso cref="NetworkLatency" />
+    public TimeSpan FixedNetworkLatency { get; set; }
+
+    /// <summary>
     ///     Forced network packet sending latency for the current peer.
     ///     This value is processed using <see cref="LatencyStrategy" />.
     /// </summary>
@@ -65,7 +72,7 @@ public sealed record ProtocolOptions
 
     /// <summary>
     ///     Strategy for applying delay to sending packages, forcing latency.
-    ///     When <see cref="NetworkLatency" /> is <see cref="TimeSpan.Zero" /> this is ignored.
+    ///     When <see cref="NetworkLatency" /> and <see cref="FixedNetworkLatency"/> are <see cref="TimeSpan.Zero" /> this is ignored.
     /// </summary>
     /// <value>Defaults to <see cref="LatencyStrategy.Gaussian" /></value>
     /// <seealso cref="NetworkLatency" />

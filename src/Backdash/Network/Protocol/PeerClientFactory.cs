@@ -19,12 +19,13 @@ sealed class PeerClientFactory(
             new ProtocolMessageSerializer(options.Protocol.SerializationEndianness),
             observer,
             logger,
-            latencyStrategy,
+            LatencyWaiter.Create(
+                latencyStrategy,
+                options.Protocol.NetworkLatency,
+                options.Protocol.FixedNetworkLatency
+            ),
             options.Protocol.UdpPacketBufferSize,
             options.Protocol.MaxPackageQueue,
             options.Protocol.ReceiveSocketAddressSize
-        )
-        {
-            NetworkLatency = options.Protocol.NetworkLatency,
-        };
+        );
 }
