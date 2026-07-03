@@ -33,7 +33,7 @@ public interface IStateStore
     /// <summary>
     ///     Returns last <see cref="SavedState" />.
     /// </summary>
-    SavedState Last();
+    ref SavedState Last();
 
     /// <summary>
     ///     Returns next writable <see cref="SavedState" />.

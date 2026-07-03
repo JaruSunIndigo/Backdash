@@ -323,7 +323,7 @@ sealed class PeerConnection<TInput> : IDisposable where TInput : unmanaged
         var checkFrame = lastReceivedFrame.Number - options.ConsistencyCheckDistance;
         if (checkFrame <= 1) return;
 
-        state.Consistency.AskedFrame = new(checkFrame);
+        state.Consistency.AskedFrame = (Frame)checkFrame;
         state.Consistency.AskedChecksum = checksumStore.Get(state.Consistency.AskedFrame);
 
         if (state.Consistency.AskedFrame.IsNull || state.Consistency.AskedChecksum.IsEmpty)
@@ -333,10 +333,10 @@ sealed class PeerConnection<TInput> : IDisposable where TInput : unmanaged
             state.Consistency.LastCheck = Stopwatch.GetTimestamp();
 
         var elapsed = Stopwatch.GetElapsedTime(state.Consistency.LastCheck);
-        if (options.ConsistencyCheckTimeout > TimeSpan.Zero && elapsed > options.ConsistencyCheckTimeout)
+        if (elapsed > options.ConsistencyCheckTimeout && options.ConsistencyCheckTimeout > TimeSpan.Zero)
         {
             logger.Write(LogLevel.Error,
-                $"Consistency check timeout on frame {lastReceivedFrame.Number}. Disconnecting");
+                $"Consistency check timeout ({elapsed.TotalSeconds:F2} seconds) on frame {lastReceivedFrame.Number}. Disconnecting");
             Disconnect();
             return;
         }

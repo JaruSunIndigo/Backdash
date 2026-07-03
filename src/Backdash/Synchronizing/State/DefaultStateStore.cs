@@ -1,6 +1,7 @@
+// ReSharper disable ForCanBeConvertedToForeach, RedundantSuppressNullableWarningExpression
+
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Backdash.Serialization;
 
 namespace Backdash.Synchronizing.State;
@@ -41,46 +42,60 @@ public sealed class DefaultStateStore(int hintSize) : IStateStore
         return ref result!;
     }
 
-    /// <inheritdoc />
-    public SavedState Last()
+    int LastIndex
     {
-        var i = head - 1;
-        var index = i < 0 ? savedStates.Length - 1 : i;
-        return savedStates[index];
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => (head is 0 ? savedStates.Length : head) - 1;
     }
 
-    bool IsInRange(Frame frame)
+    /// <inheritdoc />
+    public ref SavedState Last() => ref savedStates[LastIndex];
+
+    const int NotFound = -1;
+
+    int FindIndex(Frame frame)
     {
-        if (frame.IsNull) return false;
-        var last = Last().Frame;
-        if (last.Number <= 0) return true;
-        return frame.Number <= last.Number;
+        if (frame.IsNull) return NotFound;
+        ref var last = ref Last();
+        var lastFrame = last.Frame;
+        var delta = lastFrame.Number - frame.Number;
+        if (delta < 0 || delta >= savedStates.Length)
+            return NotFound;
+
+        var slot = LastIndex - delta;
+        if (slot < 0) slot += savedStates.Length;
+        if (savedStates[slot].Frame.Number == frame.Number)
+            return slot;
+
+        var index = head;
+        var span = savedStates.AsSpan();
+        for (var i = 0; i < span.Length; i++)
+        {
+            if (--index < 0) index = span.Length - 1;
+            if (span[index].Frame == frame)
+                return index;
+        }
+
+        return NotFound;
+    }
+
+    /// <inheritdoc />
+    public bool Seek(Frame frame)
+    {
+        var index = FindIndex(frame);
+        if (index < 0) return false;
+        head = index;
+        return true;
     }
 
     /// <inheritdoc />
     public bool TryLoad(Frame frame, [MaybeNullWhen(false)] out SavedState result)
     {
-        if (!IsInRange(frame))
+        if (Seek(frame))
         {
-            result = null;
-            return false;
-        }
-
-        var i = 0;
-        ref var current = ref MemoryMarshal.GetReference(savedStates.AsSpan());
-        ref var limit = ref Unsafe.Add(ref current, savedStates.Length);
-        while (Unsafe.IsAddressLessThan(ref current, ref limit))
-        {
-            if (current.Frame.Number == frame.Number)
-            {
-                head = i;
-                Advance();
-                result = current;
-                return true;
-            }
-
-            i++;
-            current = ref Unsafe.Add(ref current, 1)!;
+            result = savedStates[head];
+            Advance();
+            return true;
         }
 
         result = null;
@@ -90,42 +105,14 @@ public sealed class DefaultStateStore(int hintSize) : IStateStore
     /// <inheritdoc />
     public bool TryGet(Frame frame, [MaybeNullWhen(false)] out SavedState result)
     {
-        ref var current = ref MemoryMarshal.GetReference(savedStates.AsSpan());
-        ref var limit = ref Unsafe.Add(ref current, savedStates.Length);
-        while (Unsafe.IsAddressLessThan(ref current, ref limit))
+        var index = FindIndex(frame);
+        if (index < 0)
         {
-            if (current.Frame.Number == frame.Number)
-            {
-                result = current;
-                return true;
-            }
-
-            current = ref Unsafe.Add(ref current, 1)!;
+            result = null;
+            return false;
         }
 
-        result = null;
-        return false;
-    }
-
-    /// <inheritdoc />
-    public bool Seek(Frame frame)
-    {
-        if (!IsInRange(frame)) return false;
-        var i = 0;
-        ref var current = ref MemoryMarshal.GetReference(savedStates.AsSpan());
-        ref var limit = ref Unsafe.Add(ref current, savedStates.Length);
-        while (Unsafe.IsAddressLessThan(ref current, ref limit))
-        {
-            if (current.Frame == frame)
-            {
-                head = i;
-                return true;
-            }
-
-            i++;
-            current = ref Unsafe.Add(ref current, 1)!;
-        }
-
-        return false;
+        result = savedStates[index];
+        return true;
     }
 }

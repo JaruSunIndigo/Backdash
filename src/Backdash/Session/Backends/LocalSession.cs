@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -270,32 +271,35 @@ sealed class LocalSession<TInput> : INetcodeSession<TInput> where TInput : unman
         if (!stateStore.TryLoad(frame, out var savedFrame))
             return false;
 
+        TryDropSavedInputsAfter(frame);
+        DiscardInputsAfter(frame);
+
         var offset = 0;
         BinaryBufferReader reader = new(savedFrame.GameState.WrittenSpan, ref offset, endianness);
         callbacks.LoadState(frame, ref reader);
-        TryDropSavedInputsAfter(frame);
         CurrentFrame = frame;
-        DiscardInputsAfter(frame);
-
         return true;
     }
 
     public void LoadSnapshot(StateSnapshot snapshot)
     {
-        if (snapshot.Frame > CurrentFrame)
-            snapshot.Frame = Frame.Max(CurrentFrame.Previous(), Frame.One);
+        if (snapshot.Frame > CurrentFrame || snapshot.Frame < Frame.Zero)
+            snapshot.Frame = Frame.Max(CurrentFrame.Previous(), Frame.Zero);
 
-        if (snapshot.Frame.Number >= 0)
-        {
-            TryDropSavedInputsAfter(snapshot.Frame);
-            CurrentFrame = snapshot.Frame;
-            DiscardInputsAfter(CurrentFrame);
-            stateStore.Seek(CurrentFrame);
-        }
+        TryDropSavedInputsAfter(snapshot.Frame);
+        DiscardInputsAfter(snapshot.Frame);
+
+        stateStore.Clear();
+        ref var stored = ref stateStore.Next();
+        stored.Frame = snapshot.Frame;
+        stored.Checksum = snapshot.Checksum;
+        stored.GameState.Write(snapshot.State);
+        stateStore.Advance();
 
         var offset = 0;
         BinaryBufferReader reader = new(snapshot.State, ref offset, endianness);
-        callbacks.LoadState(CurrentFrame, ref reader);
+        callbacks.LoadState(snapshot.Frame, ref reader);
+        CurrentFrame = snapshot.Frame;
     }
 
     void DiscardInputsAfter(Frame frame)
@@ -332,7 +336,6 @@ sealed class LocalSession<TInput> : INetcodeSession<TInput> where TInput : unman
         callbacks.SaveState(currentFrame, ref writer);
         nextState.Frame = currentFrame;
         nextState.Checksum = checksumProvider.Compute(nextState.GameState.WrittenSpan);
-
         stateStore.Advance();
         logger.Write(LogLevel.Trace, $"replay: saved frame {nextState.Frame} (checksum: {nextState.Checksum})");
     }

@@ -243,7 +243,7 @@ public sealed class NetcodeSessionBuilder<TInput> where TInput : unmanaged
     /// <inheritdoc cref="NetcodeOptions.StateSizeHint" />
     public NetcodeSessionBuilder<TInput> WithStateSizeHint(int byteSize)
     {
-        options.StateSizeHint = byteSize;
+        options.StateSizeHint = int.Max(byteSize, 8);
         return this;
     }
 
