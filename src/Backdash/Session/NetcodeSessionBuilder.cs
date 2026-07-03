@@ -331,7 +331,6 @@ public sealed class NetcodeSessionBuilder<TInput> where TInput : unmanaged
     public NetcodeSessionBuilder<TInput> WithConsistencyCheck(bool enabled) =>
         ConfigureProtocol(o => o.ConsistencyCheckEnabled = enabled);
 
-
     /// <summary>
     ///     Sets <see cref="NetcodeOptions.Protocol"/>.<see cref="ProtocolOptions.NetworkLatency" /> option.
     /// </summary>
@@ -343,6 +342,10 @@ public sealed class NetcodeSessionBuilder<TInput> where TInput : unmanaged
             if (strategy.HasValue)
                 o.LatencyStrategy = strategy.Value;
         });
+
+    /// <inheritdoc cref="WithNetworkLatency(TimeSpan, LatencyStrategy?)"/>>
+    public NetcodeSessionBuilder<TInput> WithNetworkLatency(long milliseconds, LatencyStrategy? strategy = null) =>
+        WithNetworkLatency(TimeSpan.FromMilliseconds(milliseconds), strategy);
 
     /// <summary>
     ///     Set the logger <see cref="ServicesConfig{TInput}.LogWriter" />

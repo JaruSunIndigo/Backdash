@@ -17,7 +17,6 @@ sealed class ProtocolNetworkEventQueue : IProtocolNetworkEventHandler
         {
             SingleWriter = false,
             SingleReader = true,
-            AllowSynchronousContinuations = true,
         });
 
     public bool TryRead(out ProtocolEventInfo nextEvent) => channel.Reader.TryRead(out nextEvent);

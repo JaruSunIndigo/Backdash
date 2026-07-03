@@ -80,7 +80,6 @@ sealed class PeerClient<T> : INetcodeJob, IDisposable, IAsyncDisposable where T 
             {
                 SingleWriter = false,
                 SingleReader = true,
-                AllowSynchronousContinuations = true,
                 FullMode = BoundedChannelFullMode.DropOldest,
             });
 

@@ -28,7 +28,6 @@ sealed class ProtocolInputEventQueue<TInput> : IDisposable, IProtocolInputEventP
         {
             SingleWriter = false,
             SingleReader = true,
-            AllowSynchronousContinuations = true,
         });
 
     public bool TryConsume(out GameInputEvent<TInput> nextEvent) => channel.Reader.TryRead(out nextEvent);
