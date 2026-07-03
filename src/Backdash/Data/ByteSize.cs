@@ -8,7 +8,7 @@ namespace Backdash.Data;
 ///     Represents a byte size value
 /// </summary>
 [UnsafeInt64JsonConverter<ByteSize>]
-public readonly record struct ByteSize(long ByteCount)
+public readonly record struct ByteSize(long TotalBytes)
     :
         IComparable<ByteSize>,
         ISpanFormattable,
@@ -47,32 +47,39 @@ public readonly record struct ByteSize(long ByteCount)
     const string GigaByteSymbol = "GB";
     const string TeraByteSymbol = "TB";
 
+    /// <summary>Gets the <see cref="int"/> clamped number of bytes.</summary>
+    public int Bytes
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => int.CreateTruncating(TotalBytes);
+    }
+
     /// <summary>Gets the number of KibiBytes represented by this object.</summary>
-    public double KibiBytes => ByteCount / BytesToKibiByte;
+    public double KibiBytes => TotalBytes / BytesToKibiByte;
 
     /// <summary>Gets the number of MebiBytes represented by this object.</summary>
-    public double MebiBytes => ByteCount / BytesToMebiByte;
+    public double MebiBytes => TotalBytes / BytesToMebiByte;
 
     /// <summary>Gets the number of GibiBytes represented by this object.</summary>
-    public double GibiBytes => ByteCount / BytesToGibiByte;
+    public double GibiBytes => TotalBytes / BytesToGibiByte;
 
     /// <summary>Gets the number of TebiBytes represented by this object.</summary>
-    public double TebiBytes => ByteCount / BytesToTebiByte;
+    public double TebiBytes => TotalBytes / BytesToTebiByte;
 
     /// <summary>Gets the number of KiloBytes represented by this object.</summary>
-    public double KiloBytes => ByteCount / BytesToKiloByte;
+    public double KiloBytes => TotalBytes / BytesToKiloByte;
 
     /// <summary>Gets the number of MegaBytes represented by this object.</summary>
-    public double MegaBytes => ByteCount / BytesToMegaByte;
+    public double MegaBytes => TotalBytes / BytesToMegaByte;
 
     /// <summary>Gets the number of GigaBytes represented by this object.</summary>
-    public double GigaBytes => ByteCount / BytesToGigaByte;
+    public double GigaBytes => TotalBytes / BytesToGigaByte;
 
     /// <summary>Gets the number of TeraBytes represented by this object.</summary>
-    public double TeraBytes => ByteCount / BytesToTeraByte;
+    public double TeraBytes => TotalBytes / BytesToTeraByte;
 
     /// <inheritdoc />
-    public int CompareTo(ByteSize other) => ByteCount.CompareTo(other.ByteCount);
+    public int CompareTo(ByteSize other) => TotalBytes.CompareTo(other.TotalBytes);
 
     ReadOnlySpan<char> GetMaxBinarySymbol()
     {
@@ -95,7 +102,7 @@ public readonly record struct ByteSize(long ByteCount)
     double GetValue(Measure measure) =>
         measure switch
         {
-            Measure.Byte => ByteCount,
+            Measure.Byte => TotalBytes,
             Measure.KibiByte => KibiBytes,
             Measure.MebiByte => MebiBytes,
             Measure.GibiByte => GibiBytes,
@@ -104,7 +111,7 @@ public readonly record struct ByteSize(long ByteCount)
             Measure.MegaByte => MegaBytes,
             Measure.GigaByte => GigaBytes,
             Measure.TeraByte => TeraBytes,
-            _ => ByteCount,
+            _ => TotalBytes,
         };
 
     double GetValueForSymbol(ReadOnlySpan<char> symbol) => GetValue(SymbolToMeasure(symbol));
@@ -132,7 +139,7 @@ public readonly record struct ByteSize(long ByteCount)
 
         var symbol = FindSymbol(format);
         if (symbol.IsEmpty)
-            return ByteCount.ToString(format, formatProvider);
+            return TotalBytes.ToString(format, formatProvider);
         var value = GetValueForSymbol(symbol);
         if (
             (!format.Contains('#') && !format.Contains('0'))
@@ -190,7 +197,7 @@ public readonly record struct ByteSize(long ByteCount)
 
         var symbol = FindSymbol(format);
         if (symbol.IsEmpty)
-            return writer.Write(ByteCount, format, provider);
+            return writer.Write(TotalBytes, format, provider);
 
         var value = GetValueForSymbol(symbol);
         if ((!format.Contains('#') && !format.Contains('0'))
@@ -229,7 +236,7 @@ public readonly record struct ByteSize(long ByteCount)
 
         var symbol = FindSymbol(format);
         if (symbol.IsEmpty)
-            return writer.Write(ByteCount, format);
+            return writer.Write(TotalBytes, format);
 
         var value = GetValueForSymbol(symbol);
         if ((!format.Contains('#') && !format.Contains('0'))
@@ -242,46 +249,46 @@ public readonly record struct ByteSize(long ByteCount)
     }
 
     /// <summary>Cast <see cref="ByteSize"/> to <see cref="long"/> byte-count value.</summary>
-    public static explicit operator long(ByteSize size) => size.ByteCount;
+    public static explicit operator long(ByteSize size) => size.TotalBytes;
 
     /// <summary>Cast <see cref="ByteSize"/> to <see cref="int"/> byte-count value.</summary>
-    public static explicit operator int(ByteSize size) => (int)size.ByteCount;
+    public static explicit operator int(ByteSize size) => (int)size.TotalBytes;
 
     /// <inheritdoc />
-    public static bool operator >(ByteSize left, ByteSize right) => left.ByteCount > right.ByteCount;
+    public static bool operator >(ByteSize left, ByteSize right) => left.TotalBytes > right.TotalBytes;
 
     /// <inheritdoc />
-    public static bool operator >=(ByteSize left, ByteSize right) => left.ByteCount >= right.ByteCount;
+    public static bool operator >=(ByteSize left, ByteSize right) => left.TotalBytes >= right.TotalBytes;
 
     /// <inheritdoc />
-    public static bool operator <(ByteSize left, ByteSize right) => left.ByteCount < right.ByteCount;
+    public static bool operator <(ByteSize left, ByteSize right) => left.TotalBytes < right.TotalBytes;
 
     /// <inheritdoc />
-    public static bool operator <=(ByteSize left, ByteSize right) => left.ByteCount <= right.ByteCount;
+    public static bool operator <=(ByteSize left, ByteSize right) => left.TotalBytes <= right.TotalBytes;
 
     /// <inheritdoc />
-    public static ByteSize operator ++(ByteSize value) => new(value.ByteCount + 1);
+    public static ByteSize operator ++(ByteSize value) => new(value.TotalBytes + 1);
 
     /// <inheritdoc />
-    public static ByteSize operator --(ByteSize value) => new(value.ByteCount - 1);
+    public static ByteSize operator --(ByteSize value) => new(value.TotalBytes - 1);
 
     /// <inheritdoc />
-    public static ByteSize operator +(ByteSize left, ByteSize right) => new(left.ByteCount + right.ByteCount);
+    public static ByteSize operator +(ByteSize left, ByteSize right) => new(left.TotalBytes + right.TotalBytes);
 
     /// <inheritdoc />
-    public static ByteSize operator -(ByteSize left, ByteSize right) => new(left.ByteCount - right.ByteCount);
+    public static ByteSize operator -(ByteSize left, ByteSize right) => new(left.TotalBytes - right.TotalBytes);
 
     /// <inheritdoc />
-    public static ByteSize operator /(ByteSize left, double right) => new((long)(left.ByteCount / right));
+    public static ByteSize operator /(ByteSize left, double right) => new((long)(left.TotalBytes / right));
 
     /// <inheritdoc />
     public static ByteSize operator /(ByteSize left, long right) => left / (double)right;
 
     /// <inheritdoc />
-    public static ByteSize operator *(ByteSize left, long right) => new(left.ByteCount * right);
+    public static ByteSize operator *(ByteSize left, long right) => new(left.TotalBytes * right);
 
     /// <inheritdoc cref="op_Multiply(ByteSize,long)" />
-    public static ByteSize operator *(long left, ByteSize right) => new(left * right.ByteCount);
+    public static ByteSize operator *(long left, ByteSize right) => new(left * right.TotalBytes);
 
     /// <summary>
     ///     Returns new <see cref="ByteSize" /> with <paramref name="value" /> bytes
@@ -391,7 +398,7 @@ public readonly record struct ByteSize(long ByteCount)
     /// <summary>
     ///     Returns the first power of two ByteSize greater than <paramref name="value" />
     /// </summary>
-    public static ByteSize NextPowerOfTwo(ByteSize value) => new(MathI.NextPowerOfTwo(value.ByteCount));
+    public static ByteSize NextPowerOfTwo(ByteSize value) => new(MathI.NextPowerOfTwo(value.TotalBytes));
 
     /// <summary>
     ///     Returns the first power of two ByteSize greater than <paramref name="size" /> (in bytes)

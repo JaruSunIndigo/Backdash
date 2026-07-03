@@ -87,7 +87,7 @@ public sealed class Measurer : IAsyncDisposable
         if (snapshots is [.., var last])
         {
             var avgAlloc = (ByteSize)snapshots
-                .Select(x => x.DeltaAllocatedBytes.ByteCount)
+                .Select(x => x.DeltaAllocatedBytes.TotalBytes)
                 .Average();
             builder.AppendLine(
                 $"""

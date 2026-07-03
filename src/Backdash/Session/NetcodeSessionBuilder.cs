@@ -4,6 +4,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using Backdash.Backends;
 using Backdash.Core;
+using Backdash.Data;
 using Backdash.Network;
 using Backdash.Network.Client;
 using Backdash.Options;
@@ -245,6 +246,10 @@ public sealed class NetcodeSessionBuilder<TInput> where TInput : unmanaged
         options.StateSizeHint = byteSize;
         return this;
     }
+
+    /// <inheritdoc cref="NetcodeOptions.StateSizeHint" />
+    public NetcodeSessionBuilder<TInput> WithStateSizeHint(ByteSize size) =>
+        WithStateSizeHint(size.Bytes);
 
     /// <inheritdoc cref="NetcodeOptions.SaveStateCount" />
     public NetcodeSessionBuilder<TInput> WithSaveStateCount(int count)

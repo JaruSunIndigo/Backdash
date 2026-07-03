@@ -29,7 +29,7 @@ public class FrameRangeJsonSerializationTests() :
 }
 
 public class ByteSizeJsonSerializationTests() :
-    BaseJsonConverterTests<ByteSize>(Gen.ByteSize, x => $"{x.ByteCount}")
+    BaseJsonConverterTests<ByteSize>(Gen.ByteSize, x => $"{x.TotalBytes}")
 {
     [Fact] public void ShouldDeserialize() => DeserializeTest();
     [Fact] public void ShouldSerialize() => SerializeTest();

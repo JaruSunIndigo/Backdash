@@ -22,7 +22,7 @@ public class CompareSerializationBenchmark
     TestData result = null!;
     (BinaryReader Reader, BinaryWriter Writer) native;
 
-    static int InitialBufferCapacity => (int)ByteSize.FromMebiBytes(10).ByteCount;
+    static int InitialBufferCapacity => (int)ByteSize.FromMebiBytes(10).TotalBytes;
     readonly ArrayBufferWriter<byte> buffer = new(InitialBufferCapacity);
     readonly MemoryStream stream = new(InitialBufferCapacity);
 
@@ -47,7 +47,7 @@ public class CompareSerializationBenchmark
     public void AfterEach()
     {
         var size = ByteSize.FromBytes(buffer.WrittenCount);
-        Console.WriteLine($"Data-Size: {size} ({size.ByteCount} bytes)");
+        Console.WriteLine($"Data-Size: {size} ({size.TotalBytes} bytes)");
     }
 
     [Benchmark(Baseline = true)]

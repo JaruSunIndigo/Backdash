@@ -312,7 +312,7 @@ sealed class PeerConnection<TInput> : IDisposable where TInput : unmanaged
             stats.PackagesPerSecond = (float)(stats.TotalPackets * 1000f / elapsed.TotalMilliseconds);
             stats.Bandwidth = stats.TotalBytesWithHeaders / elapsed.TotalSeconds;
             stats.UdpOverhead =
-                (float)(100.0 * (packageHeaderSize * stats.TotalPackets) / stats.TotalBytes.ByteCount);
+                (float)(100.0 * (packageHeaderSize * stats.TotalPackets) / stats.TotalBytes.TotalBytes);
         }
     }
 

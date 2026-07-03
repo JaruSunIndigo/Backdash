@@ -26,7 +26,7 @@ public sealed class MemoryInputListener<TInput> : IInputListener<TInput>, IInput
 
     internal MemoryInputListener(IInputListener<TInput>? next)
     {
-        inputList = new((int)ByteSize.FromKibiBytes(5).ByteCount);
+        inputList = new((int)ByteSize.FromKibiBytes(5).TotalBytes);
         Inputs = inputList.AsReadOnly();
         nextListener = next;
     }

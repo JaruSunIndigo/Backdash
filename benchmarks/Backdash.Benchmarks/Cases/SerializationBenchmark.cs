@@ -43,7 +43,7 @@ public class SerializationBenchmark
 
         Random random = new(42);
         data = new(random, TestItemCount, WithIn, WithRef, WithValues);
-        buffer = new((int)bufferSize.ByteCount);
+        buffer = new((int)bufferSize.TotalBytes);
     }
 
     [IterationSetup]
@@ -58,7 +58,7 @@ public class SerializationBenchmark
     public void AfterEach()
     {
         var size = ByteSize.FromBytes(buffer.WrittenCount);
-        Console.WriteLine($"===> Data-Size: {size} ({size.ByteCount} bytes), Endianness: {SerializationEndianness}");
+        Console.WriteLine($"===> Data-Size: {size} ({size.TotalBytes} bytes), Endianness: {SerializationEndianness}");
     }
 
     [Benchmark]
