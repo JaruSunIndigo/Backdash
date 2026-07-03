@@ -9,12 +9,11 @@ namespace Backdash;
 /// <summary>
 ///     Holds data of a player to be added to <see cref="INetcodeSession{TInput}" />.
 /// </summary>
-[Serializable]
+// ReSharper disable once ClassWithVirtualMembersNeverInherited.Global
 public class NetcodePlayer :
     IUtf8SpanFormattable,
     IEquatable<NetcodePlayer>,
     IEqualityOperators<NetcodePlayer, NetcodePlayer, bool>
-
 {
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
     sbyte queueIndex;

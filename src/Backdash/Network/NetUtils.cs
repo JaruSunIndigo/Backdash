@@ -1,3 +1,4 @@
+#pragma warning disable S1313
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
